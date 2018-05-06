@@ -583,7 +583,17 @@ exports.getFileUpload = (req, res) => {
 };
 
 exports.postFileUpload = (req, res) => {
-  req.flash('success', { msg: 'File was uploaded successfully.' });
+  let file = req.file;
+
+  if(file) {
+    console.log('文件类型：%s', file.mimetype);
+    console.log('原始文件名：%s', file.originalname);
+    console.log('文件大小：%s', file.size);
+    console.log('文件保存路径：%s', file.path);
+    req.flash('success', { msg: 'File was uploaded successfully.' });
+  } else {
+    req.flash('errors', { msg: 'File type was not supported' });
+  }
   res.redirect('/api/upload');
 };
 

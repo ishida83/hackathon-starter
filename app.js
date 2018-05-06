@@ -19,8 +19,46 @@ const expressValidator = require('express-validator');
 const expressStatusMonitor = require('express-status-monitor');
 const sass = require('node-sass-middleware');
 const multer = require('multer');
+const fs = require('fs');
+const https = require('https');
+const rfs = require('rotating-file-stream');
+const engines = require('consolidate');
 
-const upload = multer({ dest: path.join(__dirname, 'uploads') });
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, 'uploads'));
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+
+const upload = multer({
+  storage,
+  // dest: path.join(__dirname, 'uploads'), 
+  fileFilter: (req, file, cb) => {
+    console.log('file', file);
+    // console.log('req', req);
+    // To reject this file pass `false`, like so:
+    if(!file.mimetype.includes('image')) {
+      console.log('file type not supported');
+      cb(null, false);
+    }
+    // To accept the file pass `true`, like so:
+    else cb(null, true);
+  
+    // You can always pass an error if something goes wrong:
+    // cb(new Error('System error!'));
+  }
+});
+
+const logDirectory = path.join(__dirname, 'log');
+const accessLogStream = rfs('access.log', {
+  size: '50M', // rotate every 10 MegaBytes written
+  interval: '1d', // rotate daily
+  compress: 'gzip',
+  path: logDirectory
+});
 
 /**
  * Load environment variables from .env file, where API keys and passwords are configured.
@@ -44,6 +82,9 @@ const passportConfig = require('./config/passport');
  * Create Express server.
  */
 const app = express();
+const router = express.Router();
+router.get('/', (req, res) => {});
+app.use('/sub', router);
 
 /**
  * Connect to MongoDB.
@@ -62,15 +103,24 @@ app.set('host', process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0');
 app.set('port', process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080);
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
+app.engine('pug', engines.pug);
+app.engine('ejs', engines.ejs);
+app.engine('html', engines.ejs);
 app.use(expressStatusMonitor());
 app.use(compression());
 app.use(sass({
   src: path.join(__dirname, 'public'),
   dest: path.join(__dirname, 'public')
 }));
-app.use(logger('dev'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// app.use(logger('dev'));
+app.use(logger('combined', { stream: accessLogStream }));
+app.use(bodyParser({
+  uploadDir: `${__dirname}/uploads`,
+  keepExtensions: true,
+  limit: '50mb'
+}));
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use(expressValidator());
 app.use(session({
   resave: true,
@@ -169,6 +219,17 @@ app.get('/api/pinterest', passportConfig.isAuthenticated, passportConfig.isAutho
 app.post('/api/pinterest', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.postPinterest);
 app.get('/api/google-maps', apiController.getGoogleMaps);
 
+
+app.get('/api/images', (req, res) => {});
+app.get('/api/images/:page', (req, res) => {});
+app.get('/api/images/:image_id', (req, res) => {});
+app.delete('/api/images/:image_id', (req, res) => {});
+app.post('/api/thumbUp/:image_id/:open_id', (req, res) => {});
+app.post('/api/thumbDown/:image_id/:open_id', (req, res) => {});
+app.post('/api/upload/:open_id', (req, res) => {});
+app.post('/api/profile/:open_id', (req, res) => {});
+app.put('/api/profile/:open_id', (req, res) => {});
+app.get('/api/profile/:open_id', (req, res) => {});
 /**
  * OAuth authentication routes. (Sign in)
  */
@@ -228,9 +289,22 @@ if (process.env.NODE_ENV === 'development') {
 /**
  * Start Express server.
  */
-app.listen(app.get('port'), () => {
+const server = app.listen(app.get('port'), () => {
   console.log('%s App is running at http://localhost:%d in %s mode', chalk.green('✓'), app.get('port'), app.get('env'));
   console.log('  Press CTRL-C to stop\n');
 });
 
-module.exports = app;
+
+if (process.env.npm_config_mode === 'ssl' || process.argv.slice(2)[0] === 'ssl') {
+  const options = {
+      key: fs.readFileSync('./server/keys/server.key'),
+      ca: [fs.readFileSync('./server/keys/ca.crt')],
+      cert: fs.readFileSync('./server/keys/server.crt')
+  };
+  https.createServer(options, app).listen(8081, () => {
+      // res.writeHead(200);
+      console.log('%s Express server listening on port %d in %s mode.', chalk.green('✓'), 8081, app.get('env'));
+  });
+}
+
+module.exports = server;
