@@ -23,6 +23,11 @@ const fs = require('fs');
 const https = require('https');
 const rfs = require('rotating-file-stream');
 const engines = require('consolidate');
+const jsonServer = require('json-server');
+const fsAPI = require('fs-rest-api');
+
+const jsonRouter = jsonServer.router(path.join(__dirname, 'db.json'));
+const jsonMiddlewares = jsonServer.defaults();
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -136,7 +141,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
 app.use((req, res, next) => {
-  if (req.path === '/api/upload') {
+  if (req.path === '/api/upload' || req.path.includes('/json/') || req.path.includes('/fs/')) {
     next();
   } else {
     lusca.csrf()(req, res, next);
@@ -294,17 +299,29 @@ const server = app.listen(app.get('port'), () => {
   console.log('  Press CTRL-C to stop\n');
 });
 
-
+let httpsServer;
 if (process.env.npm_config_mode === 'ssl' || process.argv.slice(2)[0] === 'ssl') {
   const options = {
       key: fs.readFileSync('./server/keys/server.key'),
       ca: [fs.readFileSync('./server/keys/ca.crt')],
       cert: fs.readFileSync('./server/keys/server.crt')
   };
-  https.createServer(options, app).listen(8081, () => {
+  httpsServer = https.createServer(options, app).listen(8081, () => {
       // res.writeHead(200);
       console.log('%s Express server listening on port %d in %s mode.', chalk.green('✓'), 8081, app.get('env'));
   });
+
+  app.use(jsonMiddlewares);
+  app.use('/json', jsonRouter);
+  app.use('/fs', fsAPI(path.join(__dirname, './uploads')));
+  // https://localhost:8081/fs/stat?path=1525593259617-timg.jfif
+  // https://localhost:8081/fs/tree
+  // https://localhost:8081/fs/read?path=1525593259617-timg.jfif
+  // https://localhost:8081/fs/write?path=filename&contents=base64
+  // https://localhost:8081/fs/remove?path=1525593259617-timg.jfif
+
 }
+
+process.umask(0);
 
 module.exports = server;

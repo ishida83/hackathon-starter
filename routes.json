@@ -1,0 +1,6 @@
+{
+    "/api/*": "/$1",
+    "/profile/:name/show": "/profile/:name",
+    "/posts/:author": "/posts?author=:author",
+    "/comments\\?id=:id": "/comments/:id"
+}
