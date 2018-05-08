@@ -1,19 +1,63 @@
 {
-    "posts": [
-        {
-            "id": 1,
-            "title": "json-server",
-            "author": "typicode"
-        }
-    ],
-    "comments": [
-        {
-            "id": 1,
-            "body": "some comment",
-            "postId": 1
-        }
-    ],
-    "profile": {
-        "name": "typicode"
+  "images": [
+    {
+      "id": 1,
+      "path": "1525593259617-timg.jfif",
+      "count": 123,
+      "userId": 100
+    },
+    {
+      "id": 2,
+      "path": "1525593269299-timg (1).jfif",
+      "count": 909,
+      "userId": 100
+    },
+    {
+      "id": 3,
+      "path": "1525679773822-296361862276895133633845689.jpg",
+      "count": 34,
+      "userId": 101
+    },
+    {
+      "mimetype": "image/jpeg",
+      "originalname": "10e8b9550acde0b8-459f14f6a089053d-c50eda6424e6e8a6607b12db21c4d4da.jpg",
+      "width": 220,
+      "height": 292,
+      "path": "1525797141144-10e8b9550acde0b8-459f14f6a089053d-c50eda6424e6e8a6607b12db21c4d4da.jpg",
+      "count": 0,
+      "userId": 102,
+      "id": 4
     }
+  ],
+  "users": [
+    {
+      "id": 100,
+      "name": "hello",
+      "open_id": "o6_bmjrPTlm6_2sgVt7hMZOPfL2M"
+    },
+    {
+      "id": 101,
+      "name": "world",
+      "open_id": "o6_bmjrPTlm6_2sgVt7hMZOPfXXX"
+    },
+    {
+      "name": "ishida333",
+      "open_id": "qwerty",
+      "sex": 1,
+      "hobbit": "爱好",
+      "id": 102
+    }
+  ],
+  "votes": [
+    {
+      "id": 1,
+      "userId": 100,
+      "imageId": 3
+    },
+    {
+      "id": 2,
+      "userId": 101,
+      "imageId": 2
+    }
+  ]
 }

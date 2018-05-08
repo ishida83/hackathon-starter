@@ -1,6 +1,7 @@
 /**
  * Module dependencies.
  */
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
 const express = require('express');
 const compression = require('compression');
 const session = require('express-session');
@@ -25,6 +26,9 @@ const rfs = require('rotating-file-stream');
 const engines = require('consolidate');
 const jsonServer = require('json-server');
 const fsAPI = require('fs-rest-api');
+const request = require('request');
+const serveIndex = require('serve-index');
+const sizeOf = require('image-size');
 
 const jsonRouter = jsonServer.router(path.join(__dirname, 'db.json'));
 const jsonMiddlewares = jsonServer.defaults();
@@ -141,7 +145,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
 app.use((req, res, next) => {
-  if (req.path === '/api/upload' || req.path.includes('/json/') || req.path.includes('/fs/')) {
+  if (req.path === '/api/upload' || req.path.includes('/json/') || req.path.includes('/fs/')
+  || /\/api\/images(\/)?(\d)?/.test(req.path) || /\/api\/users(\/)?(\d)?/.test(req.path)
+  || req.path.includes('/api/uploadImages')) {
     next();
   } else {
     lusca.csrf()(req, res, next);
@@ -169,6 +175,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: 31557600000 }));
+app.use('/view/images', express.static('uploads'), serveIndex('uploads', { icons: true }));
 
 /**
  * Primary app routes.
@@ -219,22 +226,259 @@ app.get('/api/paypal/success', apiController.getPayPalSuccess);
 app.get('/api/paypal/cancel', apiController.getPayPalCancel);
 app.get('/api/lob', apiController.getLob);
 app.get('/api/upload', apiController.getFileUpload);
-app.post('/api/upload', upload.single('myFile'), apiController.postFileUpload);
+const cpUpload = upload.fields([{ name: 'myFile', maxCount: 1 }, { name: 'photos', maxCount: 5 }]);
+app.post('/api/upload', cpUpload, apiController.postFileUpload);
 app.get('/api/pinterest', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.getPinterest);
 app.post('/api/pinterest', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.postPinterest);
 app.get('/api/google-maps', apiController.getGoogleMaps);
 
 
-app.get('/api/images', (req, res) => {});
-app.get('/api/images/:page', (req, res) => {});
-app.get('/api/images/:image_id', (req, res) => {});
-app.delete('/api/images/:image_id', (req, res) => {});
+app.get('/api/images', (req, res) => {
+  let url = '';
+  if (req.query && req.query.page) {
+    url = `${req.protocol}://${req.headers.host}/json/images?_page=${req.query.page}&_limit=10&_sort=count&_order=desc&_expand=user&_embed=votes`;
+  } else {
+    url = `${req.protocol}://${req.headers.host}/json/images?_sort=count&_order=desc&_expand=user&_embed=votes`;
+  }
+  if (req.query && req.query.q) {
+    url += `&q=${req.query.q}`;
+  }
+  return request({
+    url,
+    method: 'get',
+    // credentials: 'include', //same-origin
+    timeout: 1000 * 10,
+    agent: false,
+    pool: { maxSockets: 100 },
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json; charset=utf-8'
+    }
+  }, (error, response, body) => {
+    console.log(error, response, body); // eslint-disable-line
+  }).pipe(res);
+});
+app.get('/api/images/:image_id', (req, res) => {
+  const url = `${req.protocol}://${req.headers.host}/json/images?_expand=user&_embed=votes&id=${req.params.image_id}`;
+  return request({
+    url,
+    method: 'get',
+    // credentials: 'include', //same-origin
+    timeout: 1000 * 10,
+    agent: false,
+    pool: { maxSockets: 100 },
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json; charset=utf-8'
+    }
+  }, (error, response, body) => {
+    console.log(error, response, body); // eslint-disable-line
+  }).pipe(res);
+});
+app.delete('/api/images/:image_id', (req, res) => {
+  const url = `${req.protocol}://${req.headers.host}/json/images/${req.params.image_id}`;
+  return request({
+    url,
+    method: 'delete',
+    // credentials: 'include', //same-origin
+    timeout: 1000 * 10,
+    agent: false,
+    pool: { maxSockets: 100 },
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json; charset=utf-8'
+    }
+  }, (error, response, body) => {
+    console.log(error, response, body); // eslint-disable-line
+  }).pipe(res);
+});
+app.post('/api/uploadImages(/)?:open_id?', cpUpload, (req, res, next) => {
+  const url = `${req.protocol}://${req.headers.host}/json/`;
+  const file = req.files && req.files.myFile && req.files.myFile[0];
+  const { photos } = req.files;
+  console.log(photos);
+  console.log(req.body);
+
+  if (file) {
+    console.log('文件类型：%s', file.mimetype);
+    console.log('原始文件名：%s', file.originalname);
+    console.log('文件大小：%s', file.size);
+    console.log('文件保存路径：%s', file.path);
+    sizeOf(file.path, async (err, dimensions) => {
+      if (err) {
+        next(err);
+      }
+      const openId = req.params.open_id && req.params.open_id !== '' ? req.params.open_id : 'qwerty';
+      const user = await (
+        () => new Promise((resolve, reject) => {
+          request({
+            url: `${url}users?q=${openId}`,
+            method: 'get',
+            // credentials: 'include', //same-origin
+            timeout: 1000 * 10,
+            agent: false,
+            pool: { maxSockets: 100 },
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json; charset=utf-8'
+            },
+            json: true
+          }, (error, response, body) => {
+            if (error) {
+              reject(error);
+            }
+            console.log(error, response, body);
+            resolve(body && body[0]);
+          });
+        })
+      )();
+      console.log(user);
+      if (!user) {
+        next();
+      }
+      let body = req.body || {};
+      console.log(dimensions.width, dimensions.height);
+      body = {
+        ...body,
+        ...{
+          mimetype: file.mimetype,
+          originalname: file.originalname,
+          width: dimensions.width,
+          height: dimensions.height,
+          path: file.filename,
+          count: 0,
+          userId: user.id
+        }
+      };
+
+      request({
+        method: 'post',
+        url: `${url}images`,
+        body,
+        headers: {
+          'content-type': 'application/json',
+        },
+        json: true,
+      }, (error, response, body) => {
+        if (error) {
+          next(error);
+        }
+        console.log(error, response, body); // eslint-disable-line
+      }).pipe(res);
+    });
+  } else {
+    next();
+  }
+});
+
 app.post('/api/thumbUp/:image_id/:open_id', (req, res) => {});
 app.post('/api/thumbDown/:image_id/:open_id', (req, res) => {});
-app.post('/api/upload/:open_id', (req, res) => {});
-app.post('/api/profile/:open_id', (req, res) => {});
-app.put('/api/profile/:open_id', (req, res) => {});
-app.get('/api/profile/:open_id', (req, res) => {});
+
+app.post('/api/users', (req, res, next) => {
+  const url = `${req.protocol}://${req.headers.host}/json/users`;
+  request({
+    method: 'post',
+    url,
+    body: req.body,
+    headers: {
+      'content-type': 'application/json',
+    },
+    json: true,
+  }, (error, response, body) => {
+    if (error) {
+      next(error);
+    }
+    console.log(error, response, body); // eslint-disable-line
+  }).pipe(res);
+});
+app.put('/api/users/:open_id', async (req, res, next) => {
+  const url = `${req.protocol}://${req.headers.host}/json/users`;
+  let user = await (() => {
+    return new Promise((resolve, reject) => {
+      request({
+        url: `${url}?q=${req.params.open_id}`,
+        method: 'get',
+        // credentials: 'include', //same-origin
+        timeout: 1000 * 10,
+        agent: false,
+        pool: { maxSockets: 100 },
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json; charset=utf-8'
+        },
+        json: true
+      }, (error, response, body) => {
+        if (error) {
+          reject(error);
+        }
+        console.log(error, response, body);
+        resolve(body && body[0]);
+      });
+    });
+  })();
+  console.log(user);
+  if (!user) {
+    next();
+  }
+  request({
+    method: 'put',
+    url: `${url}/${user.id}`,
+    body: req.body,
+    headers: {
+      'content-type': 'application/json',
+    },
+    json: true,
+  }, (error, response, body) => {
+    if (error) {
+      next(error);
+    }
+    console.log(error, response, body); // eslint-disable-line
+  }).pipe(res);
+});
+app.get('/api/users', (req, res) => {
+  const url = `${req.protocol}://${req.headers.host}/json/users`;
+  return request({
+    url,
+    method: 'get',
+    // credentials: 'include', //same-origin
+    timeout: 1000 * 10,
+    agent: false,
+    pool: { maxSockets: 100 },
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json; charset=utf-8'
+    }
+  }, (error, response, body) => {
+    console.log(error, response, body); // eslint-disable-line
+  }).pipe(res);
+});
+app.get('/api/users/:open_id', (req, res) => {
+  const url = `${req.protocol}://${req.headers.host}/json/users?_embed=votes&_embed=images&open_id=${req.params.open_id}`;
+  return request({
+    url,
+    method: 'get',
+    // credentials: 'include', //same-origin
+    timeout: 1000 * 10,
+    agent: false,
+    pool: { maxSockets: 100 },
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json; charset=utf-8'
+    }
+  }, (error, response, body) => {
+    console.log(error, response, body); // eslint-disable-line
+  }).pipe(res);
+});
+
+app.get('/api/wechat/open_id', (req, res, next) => {
+  let url = 'https://api.weixin.qq.com/sns/jscode2session?appid=wx2b1772edcf098165&secret=a54792d9c11f3aa1c9488fbfdd11ba2f&js_code={JSCODE}&grant_type=authorization_code';
+  url = url.replace('{JSCODE}', req.query.code);
+  request.get(url, (err, reqst, body) => {
+    if (err) { return next(err); }
+    return res.send(body);
+  });
+});
+
 /**
  * OAuth authentication routes. (Sign in)
  */
@@ -302,25 +546,27 @@ const server = app.listen(app.get('port'), () => {
 let httpsServer;
 if (process.env.npm_config_mode === 'ssl' || process.argv.slice(2)[0] === 'ssl') {
   const options = {
-      key: fs.readFileSync('./server/keys/server.key'),
-      ca: [fs.readFileSync('./server/keys/ca.crt')],
-      cert: fs.readFileSync('./server/keys/server.crt')
+    key: fs.readFileSync('./server/keys/server.key'),
+    // ca: [fs.readFileSync('./server/keys/ca.crt')],
+    cert: fs.readFileSync('./server/keys/server.crt')
   };
   httpsServer = https.createServer(options, app).listen(8081, () => {
-      // res.writeHead(200);
-      console.log('%s Express server listening on port %d in %s mode.', chalk.green('✓'), 8081, app.get('env'));
+    // res.writeHead(200);
+    console.log('%s Express server listening on port %d in %s mode.', chalk.green('✓'), 8081, app.get('env'));
   });
 
-  app.use(jsonMiddlewares);
-  app.use('/json', jsonRouter);
-  app.use('/fs', fsAPI(path.join(__dirname, './uploads')));
+
   // https://localhost:8081/fs/stat?path=1525593259617-timg.jfif
   // https://localhost:8081/fs/tree
   // https://localhost:8081/fs/read?path=1525593259617-timg.jfif
   // https://localhost:8081/fs/write?path=filename&contents=base64
   // https://localhost:8081/fs/remove?path=1525593259617-timg.jfif
+  // http://localhost:9090/api/images?_expand=user&_embed=votes&_page=1&_limit=10&_sort=count&_order=desc
 
 }
+app.use(jsonMiddlewares);
+app.use('/json', jsonRouter);
+app.use('/fs', fsAPI(path.join(__dirname, './uploads')));
 
 process.umask(0);
 

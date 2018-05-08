@@ -583,9 +583,12 @@ exports.getFileUpload = (req, res) => {
 };
 
 exports.postFileUpload = (req, res) => {
-  let file = req.file;
+  const file = req.files && req.files.myFile && req.files.myFile[0];
+  const { photos } = req.files;
+  console.log(photos);
+  console.log(req.body);
 
-  if(file) {
+  if (file) {
     console.log('文件类型：%s', file.mimetype);
     console.log('原始文件名：%s', file.originalname);
     console.log('文件大小：%s', file.size);
