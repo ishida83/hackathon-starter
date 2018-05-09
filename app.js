@@ -147,7 +147,7 @@ app.use(flash());
 app.use((req, res, next) => {
   if (req.path === '/api/upload' || req.path.includes('/json/') || req.path.includes('/fs/')
   || /\/api\/images(\/)?(\d)?/.test(req.path) || /\/api\/users(\/)?(\d)?/.test(req.path)
-  || req.path.includes('/api/uploadImages')) {
+  || req.path.includes('/api/uploadImages')||req.path === '/api/like' || req.path === '/api/unlike') {
     next();
   } else {
     lusca.csrf()(req, res, next);
@@ -255,11 +255,14 @@ app.get('/api/images', (req, res) => {
       'Content-Type': 'application/json; charset=utf-8'
     }
   }, (error, response, body) => {
-    console.log(error, response, body); // eslint-disable-line
+    // console.log(error, response, body); // eslint-disable-line
   }).pipe(res);
 });
 app.get('/api/images/:image_id', (req, res) => {
-  const url = `${req.protocol}://${req.headers.host}/json/images?_expand=user&_embed=votes&id=${req.params.image_id}`;
+  let url = `${req.protocol}://${req.headers.host}/json/images?_expand=user&_embed=votes&id=${req.params.image_id}`;
+  if (req.query && req.query.q) {
+    url += `&q=${req.query.q}`;
+  }
   return request({
     url,
     method: 'get',
@@ -272,7 +275,7 @@ app.get('/api/images/:image_id', (req, res) => {
       'Content-Type': 'application/json; charset=utf-8'
     }
   }, (error, response, body) => {
-    console.log(error, response, body); // eslint-disable-line
+    // console.log(error, response, body); // eslint-disable-line
   }).pipe(res);
 });
 app.delete('/api/images/:image_id', (req, res) => {
@@ -289,27 +292,27 @@ app.delete('/api/images/:image_id', (req, res) => {
       'Content-Type': 'application/json; charset=utf-8'
     }
   }, (error, response, body) => {
-    console.log(error, response, body); // eslint-disable-line
+    // console.log(error, response, body); // eslint-disable-line
   }).pipe(res);
 });
 app.post('/api/uploadImages(/)?:open_id?', cpUpload, (req, res, next) => {
   const url = `${req.protocol}://${req.headers.host}/json/`;
   const file = req.files && req.files.myFile && req.files.myFile[0];
   const { photos } = req.files;
-  console.log(photos);
-  console.log(req.body);
+  // console.log(photos);
+  // console.log(req.body);
 
   if (file) {
-    console.log('文件类型：%s', file.mimetype);
-    console.log('原始文件名：%s', file.originalname);
-    console.log('文件大小：%s', file.size);
-    console.log('文件保存路径：%s', file.path);
+    // console.log('文件类型：%s', file.mimetype);
+    // console.log('原始文件名：%s', file.originalname);
+    // console.log('文件大小：%s', file.size);
+    // console.log('文件保存路径：%s', file.path);
     sizeOf(file.path, async (err, dimensions) => {
       if (err) {
         next(err);
       }
-      const openId = req.params.open_id && req.params.open_id !== '' ? req.params.open_id : 'qwerty';
-      const user = await (
+      const openId = req.params.open_id && req.params.open_id !== '' ? req.params.open_id : 'pppppp';
+      let user = await (
         () => new Promise((resolve, reject) => {
           request({
             url: `${url}users?q=${openId}`,
@@ -327,17 +330,45 @@ app.post('/api/uploadImages(/)?:open_id?', cpUpload, (req, res, next) => {
             if (error) {
               reject(error);
             }
-            console.log(error, response, body);
+            // console.log(error, response, body);
             resolve(body && body[0]);
           });
         })
       )();
-      console.log(user);
+      // console.log(user);
       if (!user) {
-        next();
+        user = await (
+          () => new Promise((resolve, reject) => {
+            request({
+              url: `${req.protocol}://${req.headers.host}/api/users`,
+              method: 'post',
+              // credentials: 'include', //same-origin
+              timeout: 1000 * 10,
+              agent: false,
+              pool: { maxSockets: 100 },
+              headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json; charset=utf-8'
+              },
+              body: {
+                name: `${Date.now()}`,
+                open_id: openId
+              },
+              json: true
+            }, (error, response, body) => {
+              if (error) {
+                reject(error);
+              }
+              console.log(body);
+              resolve(body);
+            });
+          })
+        )();
+        console.log('user', user);
       }
+      console.log(user);
       let body = req.body || {};
-      console.log(dimensions.width, dimensions.height);
+      // console.log(dimensions.width, dimensions.height);
       body = {
         ...body,
         ...{
@@ -363,7 +394,7 @@ app.post('/api/uploadImages(/)?:open_id?', cpUpload, (req, res, next) => {
         if (error) {
           next(error);
         }
-        console.log(error, response, body); // eslint-disable-line
+        // console.log(error, response, body); // eslint-disable-line
       }).pipe(res);
     });
   } else {
@@ -371,15 +402,194 @@ app.post('/api/uploadImages(/)?:open_id?', cpUpload, (req, res, next) => {
   }
 });
 
-app.post('/api/thumbUp/:image_id/:open_id', (req, res) => {});
-app.post('/api/thumbDown/:image_id/:open_id', (req, res) => {});
-
-app.post('/api/users', (req, res, next) => {
-  const url = `${req.protocol}://${req.headers.host}/json/users`;
+app.post('/api/like', async (req, res, next) => {
+  const url = `${req.protocol}://${req.headers.host}/json/`;
+  const { open_id, image_id } = req.query;
+  let user, vote, image;
+  user = await (() => {
+    return new Promise((resolve, reject) => {
+      request({
+        url: `${url}users?q=${open_id}`,
+        method: 'get',
+        // credentials: 'include', //same-origin
+        timeout: 1000 * 10,
+        agent: false,
+        pool: { maxSockets: 100 },
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json; charset=utf-8'
+        },
+        json: true
+      }, (error, response, body) => {
+        if (error) {
+          reject(error);
+        }
+        // console.log(error, response, body);
+        resolve(body && body[0]);
+      });
+    });
+  })();
+  // console.log(user);
+  if (!user) {
+    return res.status(403).json({ error: '用户不存在' });
+  }
+  vote = await (() => {
+    return new Promise((resolve, reject) => {
+      request({
+        url: `${url}votes?userId=${user.id}&imageId=${image_id}`,
+        method: 'get',
+        // credentials: 'include', //same-origin
+        timeout: 1000 * 10,
+        agent: false,
+        pool: { maxSockets: 100 },
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json; charset=utf-8'
+        },
+        json: true
+      }, (error, response, body) => {
+        if (error) {
+          reject(error);
+        }
+        // console.log(error, response, body);
+        resolve(body && body[0]);
+      });
+    });
+  })();
+  // console.log(vote);
+  if (!vote) {
+    image = await (() => {
+      return new Promise((resolve, reject) => {
+        request({
+          url: `${req.protocol}://${req.headers.host}/api/images/${image_id}`,
+          method: 'get',
+          // credentials: 'include', //same-origin
+          timeout: 1000 * 10,
+          agent: false,
+          pool: { maxSockets: 100 },
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json; charset=utf-8'
+          },
+          json: true
+        }, (error, response, body) => {
+          if (error) {
+            reject(error);
+          }
+          // console.log(error, response, body);
+          resolve(body && body[0]);
+        });
+      });
+    })();
+    if (!image) {
+      return res.status(403).json({ error: '图片不存在！' });
+    }
+    delete image['votes'];
+    delete image['user'];
+    request({
+      method: 'put',
+      url: `${url}images/${image_id}`,
+      body: {
+        ...image,
+        count: image.count + 1
+      },
+      headers: {
+        'content-type': 'application/json',
+      },
+      json: true,
+    }, (error, response, body) => {
+      if (error) {
+        next(error);
+      }
+      // console.log(error, response, body); // eslint-disable-line
+    });
+    request({
+      method: 'post',
+      url: `${url}votes`,
+      body: {
+        userId: user.id,
+        imageId: image_id * 1
+      },
+      headers: {
+        'content-type': 'application/json',
+      },
+      json: true,
+    }, (error, response, body) => {
+      if (error) {
+        next(error);
+      }
+      // console.log(error, response, body); // eslint-disable-line
+    }).pipe(res);
+  } else {
+    return res.status(403).json({error: '不能重复点赞！'});
+  }
+});
+app.post('/api/unlike', async (req, res, next) => {
+  const url = `${req.protocol}://${req.headers.host}/json/`;
+  const { open_id, image_id } = req.query;
+  let user, vote, image;
+  user = await (() => {
+    return new Promise((resolve, reject) => {
+      request({
+        url: `${url}users?q=${open_id}`,
+        method: 'get',
+        // credentials: 'include', //same-origin
+        timeout: 1000 * 10,
+        agent: false,
+        pool: { maxSockets: 100 },
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json; charset=utf-8'
+        },
+        json: true
+      }, (error, response, body) => {
+        if (error) {
+          reject(error);
+        }
+        // console.log(error, response, body);
+        resolve(body && body[0]);
+      });
+    });
+  })();
+  // console.log(user);
+  if (!user) {
+    return res.status(403).json({ error: '用户不存在' });
+  }
+  image = await (() => {
+    return new Promise((resolve, reject) => {
+      request({
+        url: `${req.protocol}://${req.headers.host}/api/images/${image_id}`,
+        method: 'get',
+        // credentials: 'include', //same-origin
+        timeout: 1000 * 10,
+        agent: false,
+        pool: { maxSockets: 100 },
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json; charset=utf-8'
+        },
+        json: true
+      }, (error, response, body) => {
+        if (error) {
+          reject(error);
+        }
+        // console.log(error, response, body);
+        resolve(body && body[0]);
+      });
+    });
+  })();
+  if (!image) {
+    return res.status(403).json({ error: '图片不存在！' });
+  }
+  delete image['votes'];
+  delete image['user'];
   request({
-    method: 'post',
-    url,
-    body: req.body,
+    method: 'put',
+    url: `${url}images/${image_id}`,
+    body: {
+      ...image,
+      count: Number.parseInt(image.count, 10) ? 0 : Number.parseInt(image.count, 10)-1 
+    },
     headers: {
       'content-type': 'application/json',
     },
@@ -388,8 +598,111 @@ app.post('/api/users', (req, res, next) => {
     if (error) {
       next(error);
     }
-    console.log(error, response, body); // eslint-disable-line
+    // console.log(error, response, body); // eslint-disable-line
+  });
+  vote = await (() => {
+    return new Promise((resolve, reject) => {
+      request({
+        url: `${url}votes?userId=${user.id}&imageId=${image_id}`,
+        method: 'get',
+        // credentials: 'include', //same-origin
+        timeout: 1000 * 10,
+        agent: false,
+        pool: { maxSockets: 100 },
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json; charset=utf-8'
+        },
+        json: true
+      }, (error, response, body) => {
+        if (error) {
+          reject(error);
+        }
+        // console.log(error, response, body);
+        resolve(body && body[0]);
+      });
+    });
+  })();
+  // console.log(vote);
+  if (!vote) {
+    return res.status(403).json({ error: '出错了' });
+  }
+  request({
+    method: 'delete',
+    url: `${url}votes/${vote.id}`,
+    headers: {
+      'content-type': 'application/json',
+    },
+    json: true,
+  }, (error, response, body) => {
+    if (error) {
+      next(error);
+    }
+    // console.log(error, response, body); // eslint-disable-line
   }).pipe(res);
+});
+
+app.post('/api/users(/)?:open_id?', async (req, res, next) => {
+  const url = `${req.protocol}://${req.headers.host}/json/users`;
+  let user;
+  user = await (() => {
+    return new Promise((resolve, reject) => {
+      request({
+        url: `${url}?q=${req.params.open_id || req.body.open_id || -1}`,
+        method: 'get',
+        // credentials: 'include', //same-origin
+        timeout: 1000 * 10,
+        agent: false,
+        pool: { maxSockets: 100 },
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json; charset=utf-8'
+        },
+        json: true
+      }, (error, response, body) => {
+        if (error) {
+          reject(error);
+        }
+        // console.log(error, response, body);
+        resolve(body && body[0]);
+      });
+    });
+  })();
+  // console.log(user);
+  if (!user) {
+    request({
+      method: 'post',
+      url,
+      body: req.body,
+      headers: {
+        'content-type': 'application/json',
+      },
+      json: true,
+    }, (error, response, body) => {
+      if (error) {
+        next(error);
+      }
+      // console.log(error, response, body); // eslint-disable-line
+    }).pipe(res);
+  } else {
+    request({
+      method: 'put',
+      url: `${req.protocol}://${req.headers.host}/api/users/${req.params.open_id || req.body.open_id || -1}`,
+      body: {
+        ...user,
+        ...req.body
+      },
+      headers: {
+        'content-type': 'application/json',
+      },
+      json: true,
+    }, (error, response, body) => {
+      if (error) {
+        next(error);
+      }
+      // console.log(error, response, body); // eslint-disable-line
+    });
+  }
 });
 app.put('/api/users/:open_id', async (req, res, next) => {
   const url = `${req.protocol}://${req.headers.host}/json/users`;
@@ -411,12 +724,12 @@ app.put('/api/users/:open_id', async (req, res, next) => {
         if (error) {
           reject(error);
         }
-        console.log(error, response, body);
+        // console.log(error, response, body);
         resolve(body && body[0]);
       });
     });
   })();
-  console.log(user);
+  // console.log(user);
   if (!user) {
     next();
   }
@@ -432,11 +745,14 @@ app.put('/api/users/:open_id', async (req, res, next) => {
     if (error) {
       next(error);
     }
-    console.log(error, response, body); // eslint-disable-line
+    // console.log(error, response, body); // eslint-disable-line
   }).pipe(res);
 });
 app.get('/api/users', (req, res) => {
-  const url = `${req.protocol}://${req.headers.host}/json/users`;
+  let url = `${req.protocol}://${req.headers.host}/json/users`;
+  if (req.query && req.query.q) {
+    url += `&q=${req.query.q}`;
+  }
   return request({
     url,
     method: 'get',
@@ -449,11 +765,14 @@ app.get('/api/users', (req, res) => {
       'Content-Type': 'application/json; charset=utf-8'
     }
   }, (error, response, body) => {
-    console.log(error, response, body); // eslint-disable-line
+    // console.log(error, response, body); // eslint-disable-line
   }).pipe(res);
 });
 app.get('/api/users/:open_id', (req, res) => {
-  const url = `${req.protocol}://${req.headers.host}/json/users?_embed=votes&_embed=images&open_id=${req.params.open_id}`;
+  let url = `${req.protocol}://${req.headers.host}/json/users?_embed=votes&_embed=images&open_id=${req.params.open_id}`;
+  if (req.query && req.query.q) {
+    url += `&q=${req.query.q}`;
+  }
   return request({
     url,
     method: 'get',
@@ -466,13 +785,14 @@ app.get('/api/users/:open_id', (req, res) => {
       'Content-Type': 'application/json; charset=utf-8'
     }
   }, (error, response, body) => {
-    console.log(error, response, body); // eslint-disable-line
+    // console.log(error, response, body); // eslint-disable-line
   }).pipe(res);
 });
 
 app.get('/api/wechat/open_id', (req, res, next) => {
+  let { code } = req.query;
   let url = 'https://api.weixin.qq.com/sns/jscode2session?appid=wx2b1772edcf098165&secret=a54792d9c11f3aa1c9488fbfdd11ba2f&js_code={JSCODE}&grant_type=authorization_code';
-  url = url.replace('{JSCODE}', req.query.code);
+  url = url.replace('{JSCODE}', code);
   request.get(url, (err, reqst, body) => {
     if (err) { return next(err); }
     return res.send(body);
