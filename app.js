@@ -11,10 +11,10 @@ const chalk = require('chalk');
 const errorHandler = require('errorhandler');
 const lusca = require('lusca');
 const dotenv = require('dotenv');
-const MongoStore = require('connect-mongo')(session);
+// const MongoStore = require('connect-mongo')(session);
 const flash = require('express-flash');
 const path = require('path');
-const mongoose = require('mongoose');
+// const mongoose = require('mongoose');
 const passport = require('passport');
 const expressValidator = require('express-validator');
 const expressStatusMonitor = require('express-status-monitor');
@@ -72,7 +72,7 @@ const accessLogStream = rfs('access.log', {
 /**
  * Load environment variables from .env file, where API keys and passwords are configured.
  */
-dotenv.load({ path: '.env.example' });
+dotenv.load({ path: '.env' });
 
 /**
  * Controllers (route handlers).
@@ -98,12 +98,12 @@ app.use('/sub', router);
 /**
  * Connect to MongoDB.
  */
-mongoose.connect(process.env.MONGODB_URI);
-mongoose.connection.on('error', (err) => {
-  console.error(err);
-  console.log('%s MongoDB connection error. Please make sure MongoDB is running.', chalk.red('✗'));
-  process.exit();
-});
+// mongoose.connect(process.env.MONGODB_URI);
+// mongoose.connection.on('error', (err) => {
+//   console.error(err);
+//   console.log('%s MongoDB connection error. Please make sure MongoDB is running.', chalk.red('✗'));
+//   process.exit();
+// });
 
 /**
  * Express configuration.
@@ -136,10 +136,10 @@ app.use(session({
   saveUninitialized: true,
   secret: process.env.SESSION_SECRET,
   cookie: { maxAge: 1209600000 }, // two weeks in milliseconds
-  store: new MongoStore({
-    url: process.env.MONGODB_URI,
-    autoReconnect: true,
-  })
+  // store: new MongoStore({
+  //   url: process.env.MONGODB_URI,
+  //   autoReconnect: true,
+  // })
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -751,7 +751,7 @@ app.put('/api/users/:open_id', async (req, res, next) => {
 app.get('/api/users', (req, res) => {
   let url = `${req.protocol}://${req.headers.host}/json/users`;
   if (req.query && req.query.q) {
-    url += `&q=${req.query.q}`;
+    url += `?q=${req.query.q}`;
   }
   return request({
     url,
@@ -791,7 +791,7 @@ app.get('/api/users/:open_id', (req, res) => {
 
 app.get('/api/wechat/open_id', (req, res, next) => {
   let { code } = req.query;
-  let url = 'https://api.weixin.qq.com/sns/jscode2session?appid=wx2b1772edcf098165&secret=a54792d9c11f3aa1c9488fbfdd11ba2f&js_code={JSCODE}&grant_type=authorization_code';
+  let url = 'https://api.weixin.qq.com/sns/jscode2session?appid=wx197e81d986ab34df&secret=e39e366411f47de5da88425329c37e95&js_code={JSCODE}&grant_type=authorization_code';
   url = url.replace('{JSCODE}', code);
   request.get(url, (err, reqst, body) => {
     if (err) { return next(err); }
@@ -866,9 +866,9 @@ const server = app.listen(app.get('port'), () => {
 let httpsServer;
 if (process.env.npm_config_mode === 'ssl' || process.argv.slice(2)[0] === 'ssl') {
   const options = {
-    key: fs.readFileSync('./server/keys/server.key'),
+    key: fs.readFileSync('./server/keys/1526821422754.key'),
     // ca: [fs.readFileSync('./server/keys/ca.crt')],
-    cert: fs.readFileSync('./server/keys/server.crt')
+    cert: fs.readFileSync('./server/keys/1526821422754.pem')
   };
   httpsServer = https.createServer(options, app).listen(8081, () => {
     // res.writeHead(200);
