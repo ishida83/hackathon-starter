@@ -29,6 +29,8 @@ const fsAPI = require('fs-rest-api');
 const request = require('request');
 const serveIndex = require('serve-index');
 const sizeOf = require('image-size');
+// const gm = require('gm');
+// const images = require("images");
 
 const jsonRouter = jsonServer.router(path.join(__dirname, 'db.json'));
 const jsonMiddlewares = jsonServer.defaults();
@@ -144,15 +146,15 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
-app.use((req, res, next) => {
-  if (req.path === '/api/upload' || req.path.includes('/json/') || req.path.includes('/fs/')
-  || /\/api\/images(\/)?(\d)?/.test(req.path) || /\/api\/users(\/)?(\d)?/.test(req.path)
-  || req.path.includes('/api/uploadImages')||req.path === '/api/like' || req.path === '/api/unlike') {
-    next();
-  } else {
-    lusca.csrf()(req, res, next);
-  }
-});
+// app.use((req, res, next) => {
+//   if (req.path === '/api/upload' || req.path.includes('/json/') || req.path.includes('/fs/')
+//   || /\/api\/images(\/)?(\d)?/.test(req.path) || req.path.includes('/api/users')
+//   || req.path.includes('/api/uploadImages') || req.path.includes('/api/like') || req.path.includes('/api/unlike')) {
+//     next();
+//   } else {
+//     lusca.csrf()(req, res, next);
+//   }
+// });
 app.use(lusca.xframe('SAMEORIGIN'));
 app.use(lusca.xssProtection(true));
 app.disable('x-powered-by');
@@ -236,9 +238,9 @@ app.get('/api/google-maps', apiController.getGoogleMaps);
 app.get('/api/images', (req, res) => {
   let url = '';
   if (req.query && req.query.page) {
-    url = `${req.protocol}://${req.headers.host}/json/images?_page=${req.query.page}&_limit=10&_sort=count&_order=desc&_expand=user&_embed=votes`;
+    url = `${req.protocol}://${req.headers.host}/json/images?_page=${req.query.page}&_limit=10&_sort=count,createDate&_order=desc,desc&_embed=votes`;
   } else {
-    url = `${req.protocol}://${req.headers.host}/json/images?_sort=count&_order=desc&_expand=user&_embed=votes`;
+    url = `${req.protocol}://${req.headers.host}/json/images?_sort=count,createDate&_order=desc,desc&_embed=votes`;
   }
   if (req.query && req.query.q) {
     url += `&q=${req.query.q}`;
@@ -254,9 +256,48 @@ app.get('/api/images', (req, res) => {
       Accept: 'application/json',
       'Content-Type': 'application/json; charset=utf-8'
     }
-  }, (error, response, body) => {
+  }, async (error, response, body) => {
     // console.log(error, response, body); // eslint-disable-line
-  }).pipe(res);
+    let data = JSON.parse(body);
+    const openId = req.query.open_id;
+    if (openId) {
+      const user = await (
+        () => new Promise((resolve, reject) => {
+          request({
+            url: `${req.protocol}://${req.headers.host}/json/users?q=${openId}`,
+            method: 'get',
+            // credentials: 'include', //same-origin
+            timeout: 1000 * 10,
+            agent: false,
+            pool: { maxSockets: 100 },
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json; charset=utf-8'
+            },
+            json: true
+          }, (error, response, body) => {
+            if (error) {
+              reject(error);
+            }
+            // console.log(error, response, body);
+            resolve(body && body[0]);
+          });
+        })
+      )();
+      // console.log(user);
+      if (user) {
+        data = data.map((item) => {
+          const newItem = {
+            ...item,
+            voted: item.votes.filter(it => it.userId === user.id).length > 0
+          };
+          delete newItem.votes;
+          return newItem;
+        });
+      }
+    }
+    res.json(data);
+  });
 });
 app.get('/api/images/:image_id', (req, res) => {
   let url = `${req.protocol}://${req.headers.host}/json/images?_expand=user&_embed=votes&id=${req.params.image_id}`;
@@ -311,11 +352,17 @@ app.post('/api/uploadImages(/)?:open_id?', cpUpload, (req, res, next) => {
       if (err) {
         next(err);
       }
-      const openId = req.params.open_id && req.params.open_id !== '' ? req.params.open_id : 'pppppp';
+      // let filePath = file.path;
+      // images(file.path)                     //Load image from file 
+      //   .size(200)                          //Geometric scaling the image to 400 pixels width
+      //   .save("output.jpg", {               //Save the image to a file, with the quality of 50
+      //     quality: 50                    //保存图片到文件,图片质量为50
+      //   });
+      const open_id = req.params.open_id || req.query.open_id || req.body.open_id || 'pppppp';
       let user = await (
         () => new Promise((resolve, reject) => {
           request({
-            url: `${url}users?q=${openId}`,
+            url: `${url}users?q=${open_id}`,
             method: 'get',
             // credentials: 'include', //same-origin
             timeout: 1000 * 10,
@@ -352,7 +399,7 @@ app.post('/api/uploadImages(/)?:open_id?', cpUpload, (req, res, next) => {
               },
               body: {
                 name: `${Date.now()}`,
-                open_id: openId
+                open_id
               },
               json: true
             }, (error, response, body) => {
@@ -372,10 +419,11 @@ app.post('/api/uploadImages(/)?:open_id?', cpUpload, (req, res, next) => {
       body = {
         ...body,
         ...{
-          mimetype: file.mimetype,
-          originalname: file.originalname,
-          width: dimensions.width,
-          height: dimensions.height,
+          // mimetype: file.mimetype,
+          // originalname: file.originalname,
+          // width: dimensions.width,
+          // height: dimensions.height,
+          createDate: Date.now(),
           path: file.filename,
           count: 0,
           userId: user.id
@@ -431,7 +479,7 @@ app.post('/api/like', async (req, res, next) => {
   })();
   // console.log(user);
   if (!user) {
-    return res.status(403).json({ error: '用户不存在' });
+    return res.status(500).json({ error: '用户不存在' });
   }
   vote = await (() => {
     return new Promise((resolve, reject) => {
@@ -482,16 +530,16 @@ app.post('/api/like', async (req, res, next) => {
       });
     })();
     if (!image) {
-      return res.status(403).json({ error: '图片不存在！' });
+      return res.status(500).json({ error: '图片不存在！' });
     }
     delete image['votes'];
     delete image['user'];
     request({
       method: 'put',
-      url: `${url}images/${image_id}`,
+      url: `${url}images/${image.id}`,
       body: {
         ...image,
-        count: image.count + 1
+        count: image.count+1
       },
       headers: {
         'content-type': 'application/json',
@@ -521,7 +569,7 @@ app.post('/api/like', async (req, res, next) => {
       // console.log(error, response, body); // eslint-disable-line
     }).pipe(res);
   } else {
-    return res.status(403).json({error: '不能重复点赞！'});
+    return res.status(500).json({error: '不能重复点赞！'});
   }
 });
 app.post('/api/unlike', async (req, res, next) => {
@@ -553,7 +601,7 @@ app.post('/api/unlike', async (req, res, next) => {
   })();
   // console.log(user);
   if (!user) {
-    return res.status(403).json({ error: '用户不存在' });
+    return res.status(500).json({ error: '用户不存在' });
   }
   image = await (() => {
     return new Promise((resolve, reject) => {
@@ -579,16 +627,16 @@ app.post('/api/unlike', async (req, res, next) => {
     });
   })();
   if (!image) {
-    return res.status(403).json({ error: '图片不存在！' });
+    return res.status(500).json({ error: '图片不存在！' });
   }
   delete image['votes'];
   delete image['user'];
   request({
     method: 'put',
-    url: `${url}images/${image_id}`,
+    url: `${url}images/${image.id}`,
     body: {
       ...image,
-      count: Number.parseInt(image.count, 10) ? 0 : Number.parseInt(image.count, 10)-1 
+      count: image.count <= 1 ? 0 : --image.count
     },
     headers: {
       'content-type': 'application/json',
@@ -625,7 +673,7 @@ app.post('/api/unlike', async (req, res, next) => {
   })();
   // console.log(vote);
   if (!vote) {
-    return res.status(403).json({ error: '出错了' });
+    return res.status(500).json({ error: '出错了' });
   }
   request({
     method: 'delete',
@@ -648,7 +696,7 @@ app.post('/api/users(/)?:open_id?', async (req, res, next) => {
   user = await (() => {
     return new Promise((resolve, reject) => {
       request({
-        url: `${url}?q=${req.params.open_id || req.body.open_id || -1}`,
+        url: `${url}?q=${req.params.open_id || req.body.open_id || req.query.open_id || -1}`,
         method: 'get',
         // credentials: 'include', //same-origin
         timeout: 1000 * 10,
@@ -673,7 +721,10 @@ app.post('/api/users(/)?:open_id?', async (req, res, next) => {
     request({
       method: 'post',
       url,
-      body: req.body,
+      body: {
+        open_id: req.params.open_id || req.body.open_id || req.query.open_id || -1,
+        ...req.body
+      },
       headers: {
         'content-type': 'application/json',
       },
@@ -687,10 +738,11 @@ app.post('/api/users(/)?:open_id?', async (req, res, next) => {
   } else {
     request({
       method: 'put',
-      url: `${req.protocol}://${req.headers.host}/api/users/${req.params.open_id || req.body.open_id || -1}`,
+      url: `${req.protocol}://${req.headers.host}/api/users/${req.params.open_id || req.body.open_id || req.query.open_id || -1}`,
       body: {
         ...user,
-        ...req.body
+        ...req.body,
+        open_id: req.params.open_id || req.body.open_id || req.query.open_id || -1
       },
       headers: {
         'content-type': 'application/json',
@@ -701,7 +753,7 @@ app.post('/api/users(/)?:open_id?', async (req, res, next) => {
         next(error);
       }
       // console.log(error, response, body); // eslint-disable-line
-    });
+    }).pipe(res);
   }
 });
 app.put('/api/users/:open_id', async (req, res, next) => {
@@ -731,19 +783,23 @@ app.put('/api/users/:open_id', async (req, res, next) => {
   })();
   // console.log(user);
   if (!user) {
-    next();
+    return res.status(500).json({ error: '用户不存在' });
   }
   request({
     method: 'put',
     url: `${url}/${user.id}`,
-    body: req.body,
+    body: {
+      ...user,
+      ...req.body,
+      open_id: req.params.open_id || req.body.open_id || req.query.open_id || -1
+    },
     headers: {
       'content-type': 'application/json',
     },
     json: true,
   }, (error, response, body) => {
     if (error) {
-      next(error);
+      return res.status(500).json({ error: JSON.stringify(error) });
     }
     // console.log(error, response, body); // eslint-disable-line
   }).pipe(res);
