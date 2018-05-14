@@ -294,6 +294,15 @@ app.get('/api/images', (req, res) => {
           delete newItem.votes;
           return newItem;
         });
+      } else {
+        data = data.map((item) => {
+          const newItem = {
+            ...item,
+            voted: false
+          };
+          delete newItem.votes;
+          return newItem;
+        });
       }
     }
     res.json(data);
@@ -479,7 +488,34 @@ app.post('/api/like', async (req, res, next) => {
   })();
   // console.log(user);
   if (!user) {
-    return res.status(500).json({ error: '用户不存在' });
+    user = await (
+      () => new Promise((resolve, reject) => {
+        request({
+          url: `${req.protocol}://${req.headers.host}/api/users`,
+          method: 'post',
+          // credentials: 'include', //same-origin
+          timeout: 1000 * 10,
+          agent: false,
+          pool: { maxSockets: 100 },
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json; charset=utf-8'
+          },
+          body: {
+            name: `${Date.now()}`,
+            open_id
+          },
+          json: true
+        }, (error, response, body) => {
+          if (error) {
+            reject(error);
+          }
+          console.log(body);
+          resolve(body);
+        });
+      })
+    )();
+    console.log('user', user);
   }
   vote = await (() => {
     return new Promise((resolve, reject) => {
