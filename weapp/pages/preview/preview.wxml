@@ -1,0 +1,10 @@
+<image src="{{imgPath}}" class="preview-page-img" mode="widthFix"></image>
+<view class="preview-page-txt-box">
+    <view style="font-size: 18px;font-weight: bold" wx:if="{{name!=''}}">{{name}}</view>
+    <view wx:if="{{age!=''}}">年龄：{{age}}</view>
+    <view wx:if="{{height!=''}}">身高：{{height}}</view>
+    <view wx:if="{{bust!=''&&waist!=''&&hip!=''}}">三围：{{bust}} {{waist}} {{hip}}</view>
+</view>
+
+<view class="fixed-btn-join fixed-btn-back" style="bottom: 130px"  bindtap="goBack"></view>
+<view class="fixed-btn-join" bindtap="joinCompetition"></view>

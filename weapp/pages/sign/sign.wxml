@@ -1,0 +1,105 @@
+
+<view style="background-color: #fff;padding: 10px" bindtap="chooseImg">
+    <view class="img-upload-box" wx:if="{{imgUrl==''}}">
+        添加照片，参与比赛
+    </view>
+    <image class="img-upload-item" mode="widthFix" src="{{imgUrl}}" wx:if="{{imgUrl!=''}}"></image>
+</view>
+
+
+
+<view class="zan-panel">
+
+    <!--目前只有姓名必填。-->
+    <view class="zan-cell zan-field">
+        <view class="zan-cell__hd zan-field__title">姓名*</view>
+        <input type="text" placeholder="请输入姓名" class="zan-field__input zan-cell__bd"  bindinput='bindContentInput'  data-name="name" maxlength="10" value="{{name}}"/>
+    </view>
+
+
+    <view class="zan-cell zan-field zan-cell--access">
+        <view class="zan-cell__hd zan-field__title">性别</view>
+        <picker bindchange="bindPickerChange" value="{{index}}" range="{{array}}" class="zan-field__input zan-cell__ft">
+            <view class="picker">
+                {{sex}}
+            </view>
+        </picker>
+
+
+        <!--<view  class="zan-field__input zan-cell__ft" bindtap="chooseSex">{{sex}}</view>-->
+    </view>
+
+
+
+    <view class="zan-cell zan-field">
+        <view class="zan-cell__hd zan-field__title">手机号</view>
+        <input  placeholder="请输入手机号" class="zan-field__input zan-cell__bd" type="number" maxlength="11" data-name="telephone" bindinput='bindContentInput' value="{{telephone}}" />
+    </view>
+
+
+    <view class="zan-cell zan-field">
+        <view class="zan-cell__hd zan-field__title">年龄*</view>
+        <input type="number" placeholder="请输入年龄" class="zan-field__input zan-cell__bd" data-name="age" bindinput='bindContentInput' value="{{age}}"/>
+    </view>
+
+
+    <view class="zan-cell zan-field">
+        <view class="zan-cell__hd zan-field__title">身高*</view>
+        <input type="number" placeholder="请输入身高（cm）" class="zan-field__input zan-cell__bd" data-name="height" bindinput='bindContentInput' value="{{height}}"/>
+    </view>
+
+    <view class="zan-cell zan-field">
+        <view class="zan-cell__hd zan-field__title">三围*</view>
+        <input type="number" placeholder="胸围" class="zan-field__input zan-cell__bd" data-name="bust" bindinput='bindContentInput' maxlength="500" value="{{bust}}"/>
+        <view class="zan-field__input zan-cell__bd">/</view>
+        <input type="number" placeholder="腰围" class="zan-field__input zan-cell__bd" data-name="waist" bindinput='bindContentInput' maxlength="500" value="{{waist}}"/>
+        <view class="zan-field__input zan-cell__bd">/</view>
+        <input type="number" placeholder="臀围" class="zan-field__input zan-cell__bd" data-name="hip" bindinput='bindContentInput' maxlength="500"  value="{{hip}}"/>
+    </view>
+
+
+
+
+    <view class="zan-cell zan-field">
+        <view class="zan-cell__hd zan-field__title">职业</view>
+        <input type="text" placeholder="请输入职业" class="zan-field__input zan-cell__bd" data-name="position" bindinput='bindContentInput' maxlength="15" value="{{position}}"/>
+    </view>
+
+
+
+
+
+
+    <view class="zan-cell zan-field">
+        <view class="zan-cell__hd zan-field__title">地区</view>
+        <input type="text" placeholder="请输入地区" class="zan-field__input zan-cell__bd" data-name="address" bindinput='bindContentInput' maxlength="20" value="{{address}}"/>
+    </view>
+
+
+    <view class="zan-cell zan-field">
+        <view class="zan-cell__hd zan-field__title">爱好</view>
+        <input type="text" placeholder="请输入爱好" class="zan-field__input zan-cell__bd" data-name="habit" bindinput='bindContentInput' maxlength="20"  value="{{habit}}"/>
+    </view>
+
+    <view class="zan-cell zan-field">
+        <view class="zan-cell__hd zan-field__title" style="height:34px;line-height: 34px">一句话介绍</view>
+    </view>
+    <textarea placeholder="请输入一句话介绍（50字以内）"  maxlength="50" data-name="introduction" bindinput='bindContentInput' style="margin-bottom: 20px" value="{{introduction}}"/>
+
+
+
+
+</view>
+
+
+
+<view class="fixed-btn-join fixed-btn-back"  bindtap="goBack"  style="bottom: 130px"></view>
+<view class="fixed-btn-join fixed-btn-submit" bindtap="commitInfo"></view>
+
+
+<!--<view class="zan-panel" style='position:fixed;bottom:0;width:100%'>-->
+<!--<view class="zan-btns">-->
+<!--<button class="zan-btn zan-btn&#45;&#45;primary dt-button-disabled" wx:if="{{patientName==''||telephone==''||idCardNumber==''||visitNumber==''||medicalInsuranceNumber==''||reportNumber==''}}">查询</button>-->
+<!--<button class="zan-btn zan-btn&#45;&#45;primary" bindtap="goToResult" wx:else>查询</button>-->
+<!--</view>-->
+<!--</view>-->

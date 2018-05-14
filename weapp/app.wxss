@@ -1,0 +1,6 @@
+
+/*第三方css库，zan-ui*/
+@import "3rd/zan/dist/index.wxss";
+
+/*项目全局样式*/
+@import "css/common.wxss";

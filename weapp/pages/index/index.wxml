@@ -1,0 +1,23 @@
+<view class="full-image-container"  wx:for="{{imgList}}" wx:if="{{index<3}}">
+    <image src="{{item.path}}" mode="widthFix" lazy-load="true" bindtap="openDetail"  data-index="{{index}}"></image>
+    <view  class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}"></view>
+</view>
+
+
+<view class="free-WaterfallFlow">
+    <block>
+        <view class="flex-wrap" wx:for="{{imgList}}" wx:key='{{item.path}}' wx:if="{{item.id%2!=''&&index>2}}">
+            <image mode="widthFix" src="{{item.path}}"  bindtap="openDetail" lazy-load="true"  data-index="{{index}}"></image>
+            <view  class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}"></view>
+        </view>
+    </block>
+    <block>
+        <view class="flex-wrap" wx:for="{{imgList}}" wx:key='{{item.path}}' wx:if="{{item.id%2==''&&index>2}}" >
+            <image mode="widthFix" src="{{item.path}}" bindtap="openDetail" lazy-load="true"  data-index="{{index}}"></image>
+            <view  class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}"></view>
+        </view>
+    </block>
+</view>
+
+<view  wx:if="{{noData}}" class="no-data">没有更多数据了</view>
+<view class="fixed-btn-join" bindtap="joinCompetition"></view>

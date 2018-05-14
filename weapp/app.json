@@ -1,0 +1,13 @@
+{
+    "pages": [
+        "pages/index/index",
+        "pages/preview/preview",
+        "pages/sign/sign"
+    ],
+    "window": {
+        "backgroundTextStyle": "light",
+        "navigationBarBackgroundColor": "#2b78e4",
+        "navigationBarTitleText": "微美人",
+        "navigationBarTextStyle": "light"
+    }
+}
