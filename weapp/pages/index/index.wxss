@@ -46,6 +46,11 @@
     position: absolute;
     bottom: 15px;
     right: 15px;
+    padding-right: 30px;
+    text-align:right;
+    color: #2b78e4;
+    line-height:40px;
+
 }
 .flex-wrap
 {

@@ -8,13 +8,13 @@
     <block>
         <view class="flex-wrap" wx:for="{{imgList}}" wx:key='{{item.path}}' wx:if="{{item.id%2!=''&&index>2}}">
             <image mode="widthFix" src="{{item.path}}"  bindtap="openDetail" lazy-load="true"  data-index="{{index}}"></image>
-            <view  class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}"></view>
+            <view  class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}">{{item.count}}</view>
         </view>
     </block>
     <block>
         <view class="flex-wrap" wx:for="{{imgList}}" wx:key='{{item.path}}' wx:if="{{item.id%2==''&&index>2}}" >
             <image mode="widthFix" src="{{item.path}}" bindtap="openDetail" lazy-load="true"  data-index="{{index}}"></image>
-            <view  class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}"></view>
+            <view  class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}">{{item.count}}</view>
         </view>
     </block>
 </view>

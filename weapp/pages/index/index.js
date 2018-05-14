@@ -98,6 +98,7 @@ Page({
                         imgListNew.push({
                             userId:res.data[i].userId,
                             id:res.data[i].id,
+                            count: res.data[i].count,
                             path:serverPath+"/view/images/"+res.data[i].path,
                             favorite:res.data[i].voted
                         })
