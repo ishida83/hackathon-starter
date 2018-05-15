@@ -1,6 +1,6 @@
 <view class="full-image-container"  wx:for="{{imgList}}" wx:if="{{index<3}}">
     <image src="{{item.path}}" mode="widthFix" lazy-load="true" bindtap="openDetail"  data-index="{{index}}"></image>
-    <view  class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}"></view>
+    <view  class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}">{{item.count}}</view>
 </view>
 
 

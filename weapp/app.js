@@ -42,7 +42,7 @@ App({
     },
     globalData: {
         PAGE_SIZE:10,
-        CURRENT_ENVIRONMENT:"DEV",//DEV\TEST\PROD
+        CURRENT_ENVIRONMENT:"PROD",//DEV\TEST\PROD
         GLOBAL_CONFIG:{
             DEV:{
                 API_PATH:"https://wx.9jzhy.com:8081"
@@ -51,7 +51,7 @@ App({
                 API_PATH:"https://wx.9jzhy.com:8081"
             },
             PROD:{
-                API_PATH:"https://wx.9jzhy.com:8081"
+                API_PATH:"https://wx.9jzhy.com"
             }
         }
     }
