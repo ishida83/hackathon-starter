@@ -29,7 +29,7 @@ const fsAPI = require('fs-rest-api');
 const request = require('request');
 const serveIndex = require('serve-index');
 const sizeOf = require('image-size');
-// const gm = require('gm');
+const gm = require('gm').subClass({imageMagick: true});
 // const images = require("images");
 
 const jsonRouter = jsonServer.router(path.join(__dirname, 'db.json'));
@@ -451,6 +451,17 @@ app.post('/api/uploadImages(/)?:open_id?', cpUpload, (req, res, next) => {
         if (error) {
           next(error);
         }
+        let readStream = fs.createReadStream(file.path);
+        gm(readStream)
+          .size({ bufferStream: true }, function (err, size) {
+            console.log(err);
+            if(!err){
+              this.resize(180, 180);  // size.width / 2, size.height / 2);
+              this.write(path.join(__dirname, 'uploads', 'thumbs', `thumb_${file.filename}`), function (err) {
+                if (!err) console.log('done');
+              });
+            }
+          });
         // console.log(error, response, body); // eslint-disable-line
       }).pipe(res);
     });
