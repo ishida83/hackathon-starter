@@ -1,4 +1,3 @@
-
 var app = getApp();
 Page( {
 
@@ -6,7 +5,7 @@ Page( {
      * 页面的初始数据
      */
     data: {
-        imgUrl:'',
+        // imgUrl:'',
         sex:"请选择性别",
         array: ['男', '女', '其他'],
 
@@ -26,8 +25,36 @@ Page( {
             data:false
         },
 
-        //是否可以上传图片
-        uploadDisabled:false
+        //是否可以上传图片，新规则，每次只能上传一张图，可修改。
+        // uploadDisabled:false,
+
+        imgList:[
+            {
+                url:"",
+                source:1,//1本地、2服务端
+                image_id:0
+            },
+            {
+                url:"",
+                source:1,//1本地、2服务端
+                image_id:0
+            },
+            {
+                url:"",
+                source:1,//1本地、2服务端
+                image_id:0
+            },
+            {
+                url:"",
+                source:1,//1本地、2服务端
+                image_id:0
+            },
+            {
+                url:"",
+                source:1,//1本地、2服务端
+                image_id:0
+            }
+        ],
 
     },
 
@@ -105,24 +132,6 @@ Page( {
         wx.hideLoading();//TODO:需要刷新前页。
         wx.navigateBack();
     },
-    chooseImg:function(){
-        var that=this;
-        if(that.data.uploadDisabled===false)
-        {
-            wx.chooseImage({
-                count: 1,
-                sizeType: ['compressed'], // 可以指定是原图还是压缩图，默认二者都有
-                sourceType: ['album', 'camera'], // 可以指定来源是相册还是相机，默认二者都有
-                success: function (res) {
-                    // 返回选定照片的本地文件路径列表，tempFilePath可以作为img标签的src属性显示图片
-                    var tempFilePaths = res.tempFilePaths;
-                    that.setData({
-                        imgUrl:tempFilePaths[0]
-                    })
-                }
-            })
-        }
-    },
     bindPickerChange:function(e){
         console.log('picker发送选择改变，携带值为', e.detail.value);
         var sexList=this.data.array;
@@ -132,7 +141,20 @@ Page( {
         })
     },
     commitInfo:function(){
-        if(this.data.imgUrl==='')
+
+        var imgList=this.data.imgList;
+        var imgTotal=0;
+        for(var i=0;i<imgList.length;i++)
+        {
+            if(imgList[i].url!='')
+            {
+                imgTotal++;
+            }
+        }
+
+
+
+        if(imgTotal<=0)
         {
             wx.showToast({
                 title: '请上传图片',
@@ -152,27 +174,45 @@ Page( {
                 title:"信息提交中"
             });
 
-            if(this.data.uploadDisabled===true)
+
+
+
+            var localUploadTimes=0;
+            var newImgUrl='';
+            for(var i=0;i<imgList.length;i++)
+            {
+                if(imgList[i].source===1&&imgList[i].url!=='')
+                {
+                    newImgUrl=imgList[i].url;
+                    localUploadTimes++;
+                    break;
+                }
+            }
+
+
+
+            if(localUploadTimes<=0)
             {
                 this.data.uploadingStatus.img=true;
             }
             else
             {
-                this.uploadImgToServer();
+                this.uploadImgToServer(newImgUrl);
             }
             this.uploadDataToServer();
         }
     },
 
     //将图片上传到服务端
-    uploadImgToServer:function(){
+    uploadImgToServer:function(newImgUrl){
         var that=this;
+
         app.getOpenId(function(openid){
             var serverPath=app.globalData.GLOBAL_CONFIG[app.globalData.CURRENT_ENVIRONMENT].API_PATH;
             var apiUrl=serverPath+"/api/uploadImages/"+openid;
             wx.uploadFile({
                 url: apiUrl,
-                filePath: that.data.imgUrl,
+                filePath: newImgUrl,
                 name: 'myFile',
                 formData:{},
                 success: function(res){
@@ -273,11 +313,21 @@ Page( {
 
                         if(res.data[0].images&&res.data[0].images.length>0)
                         {
+                            var imgList=that.data.imgList;
+                            for(var i=0;i<res.data[0].images.length;i++)
+                            {
+                                imgList[i]={
+                                    url:serverPath+"/view/images/"+res.data[0].images[i].path,
+                                    source:2,//1来自本地，2来自服务端
+                                    image_id:res.data[0].images[i].id
+                                };
+                            }
                             that.setData({
-                                "imgUrl":serverPath+"/view/images/"+res.data[0].images[0].path,
-                                "uploadDisabled":true//以后都不可以修改图片了
-                            })
+                                "imgList":imgList
+                            });
                         }
+
+
                         wx.setStorageSync('userId', res.data[0].userId);
                     }
                 },
@@ -286,6 +336,103 @@ Page( {
                 }
             })
         });
+
+    },
+    chooseSingleImg:function(events){
+        var index=events.currentTarget.dataset.index;
+        var imgList=this.data.imgList;
+        var localUploadTimes=0;
+        for(var i=0;i<imgList.length;i++)
+        {
+            if(imgList[i].source===1&&imgList[i].url!=='')
+            {
+                localUploadTimes++;
+                break;
+            }
+        }
+
+        if(localUploadTimes>0)
+        {
+            wx.showToast({
+                title: '每次最多上传一张图',
+                icon:"none"
+            })
+        }
+        else
+        {
+            var that=this;
+            wx.chooseImage({
+                count: 1,
+                sizeType: ['compressed'], // 可以指定是原图还是压缩图，默认二者都有
+                sourceType: ['album', 'camera'], // 可以指定来源是相册还是相机，默认二者都有
+                success: function (res) {
+                    // 返回选定照片的本地文件路径列表，tempFilePath可以作为img标签的src属性显示图片
+                    var tempFilePaths = res.tempFilePaths;
+                    var imgList=that.data.imgList;
+                    imgList[index].url=tempFilePaths[0];
+                    imgList[index].source=1;//1本地，2服务端
+                    that.setData({
+                        imgList:imgList,
+                        singleImgUrlGlobal:tempFilePaths[0]
+                    })
+                }
+            })
+        }
+    },
+    deleteSingleImg:function(events){
+
+        var id=events.currentTarget.dataset.id;
+        var that=this;
+        var index=events.currentTarget.dataset.index;
+        var imgList=this.data.imgList;
+        var deletingItem=imgList[index];
+        if(deletingItem.source===1)
+        {
+            //本地传的图片，还未传到服务端，此时直接删除
+            imgList[index].url='';
+            imgList[index].source=1;//重新设置为1本地
+            imgList[index].id=0;
+            that.setData({
+                imgList:imgList
+            });
+            wx.showToast({
+                title: '图片删除成功',
+                icon:"none"
+            })
+        }
+        else
+        {
+            var serverPath=app.globalData.GLOBAL_CONFIG[app.globalData.CURRENT_ENVIRONMENT].API_PATH;
+            var apiUrl=serverPath+"/api/images/"+id;
+            //调接口删除
+            wx.request({
+                url:apiUrl, //仅为示例，并非真实的接口地址
+                method:"DELETE",
+                success: function(res) {
+
+                    //本地传的图片，还未传到服务端，此时直接删除
+                    imgList[index].url='';
+                    imgList[index].source=1;//重新设置为1本地
+                    imgList[index].id=0;
+                    that.setData({
+                        imgList:imgList
+                    });
+
+                    wx.showToast({
+                        title: '图片删除成功',
+                        icon:"none"
+                    });
+                    console.log(res.data)
+                },
+                fail:function(error){
+                    console.eror(error);
+                    wx.showToast({
+                        title: '图片删除失败',
+                        icon:"none"
+                    })
+                }
+            })
+        }
 
     }
 });

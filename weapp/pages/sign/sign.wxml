@@ -1,14 +1,24 @@
 
-<view style="background-color: #fff;padding: 10px" bindtap="chooseImg">
-    <view class="img-upload-box" wx:if="{{imgUrl==''}}">
-        添加照片，参与比赛
+<!--<view style="background-color: #fff;padding: 10px" bindtap="chooseImg">-->
+    <!--<view class="img-upload-box" wx:if="{{imgUrl==''}}">-->
+        <!--添加照片，参与比赛-->
+    <!--</view>-->
+    <!--<image class="img-upload-item" mode="widthFix" src="{{imgUrl}}" wx:if="{{imgUrl!=''}}"></image>-->
+<!--</view>-->
+
+
+<view style="display: block;width: 100%;margin-left: 5px">
+
+    <view class="img-upload-container" wx:for="{{imgList}}">
+        <view class="img-upload-add" bindtap="chooseSingleImg" data-index="{{index}}" wx:if="{{item.url==''}}" ></view>
+        <image class="img-upload-image" src="{{item.url}}" mode="aspectFill" style="width: 100px;height:100px" data-index="{{index}}" wx:if="{{item.url!=''}}"></image>
+        <view class="img-delete-icon" wx:if="{{item.url!=''}}" bindtap="deleteSingleImg" data-index="{{index}}" data-id="{{item.image_id}}"></view>
     </view>
-    <image class="img-upload-item" mode="widthFix" src="{{imgUrl}}" wx:if="{{imgUrl!=''}}"></image>
+
 </view>
 
 
-
-<view class="zan-panel">
+<view class="zan-panel" style="clear: both;">
 
     <!--目前只有姓名必填。-->
     <view class="zan-cell zan-field">
@@ -24,9 +34,6 @@
                 {{sex}}
             </view>
         </picker>
-
-
-        <!--<view  class="zan-field__input zan-cell__ft" bindtap="chooseSex">{{sex}}</view>-->
     </view>
 
 

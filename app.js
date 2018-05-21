@@ -896,7 +896,7 @@ app.get('/api/wechat/open_id', (req, res, next) => {
   let { code } = req.query;
   // official wx3cac99d02c940f34
   // official ac040517ce98a9e820f20f50dc78b78b
-  let url = 'https://api.weixin.qq.com/sns/jscode2session?appid=wx197e81d986ab34df&secret=e39e366411f47de5da88425329c37e95&js_code={JSCODE}&grant_type=authorization_code';
+  let url = 'https://api.weixin.qq.com/sns/jscode2session?appid=wx3cac99d02c940f34&secret=ac040517ce98a9e820f20f50dc78b78b&js_code={JSCODE}&grant_type=authorization_code';
   url = url.replace('{JSCODE}', code);
   request.get(url, (err, reqst, body) => {
     if (err) { return next(err); }

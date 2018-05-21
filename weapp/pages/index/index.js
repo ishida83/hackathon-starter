@@ -15,7 +15,7 @@ Page({
     openDetail:function(events){
         var index=parseInt(events.currentTarget.dataset.index);
         var obj=this.data.imgList[index];
-        var imgPath=obj.path;
+        var imgPath=obj.original_img_path;
         var userId=obj.userId;
         wx.navigateTo({
             url: '../preview/preview?path='+imgPath+"&userId="+userId
@@ -98,9 +98,10 @@ Page({
                         imgListNew.push({
                             userId:res.data[i].userId,
                             id:res.data[i].id,
-                            count: res.data[i].count,
-                            path:serverPath+"/view/images/"+res.data[i].path,
-                            favorite:res.data[i].voted
+                            path:serverPath+"/view/images/thumbs/thumb_"+res.data[i].path,
+                            favorite:res.data[i].voted,
+                            count:res.data[i].count,
+                            original_img_path:serverPath+"/view/images/"+res.data[i].path
                         })
                     }
                     for(var i=0;i<imgListNew.length;i++)
