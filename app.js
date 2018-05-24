@@ -456,7 +456,7 @@ app.post('/api/uploadImages(/)?:open_id?', cpUpload, (req, res, next) => {
           .size({ bufferStream: true }, function (err, size) {
             console.log(err);
             if(!err){
-              this.resize(180, 180);  // size.width / 2, size.height / 2);
+              this.resize(360, 360);  // size.width / 2, size.height / 2);
               this.write(path.join(__dirname, 'uploads', 'thumbs', `thumb_${file.filename}`), function (err) {
                 if (!err) console.log('done');
               });
