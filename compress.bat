@@ -6,6 +6,6 @@ for /f %%I in ('dir /a /b /s /od *') do (
 ::for /R %%I in (*) do ( 
 echo %%~dpI%%~nxI
 ::echo %%~tI^|asd^|%%~nxI^|%%~dpI
-convert %%~dpI%%~nxI -resize 180x180 %%~dpIthumbs\thumb_%%~nxI
+convert %%~dpI%%~nxI -resize 640x640 %%~dpIthumbs\thumb_%%~nxI
 ) 
 pause 
