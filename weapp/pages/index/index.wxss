@@ -61,7 +61,12 @@
 }
 .flex-wrap
 {
-    position: relative;
+    position:relative;
+    padding:10rpx;
+    box-shadow:0 0 5rpx #ccc;
+    background:#fff;
+    margin:10px 6rpx;
+
 }
 .favorite-icon-active
 {
@@ -69,8 +74,7 @@
 }
 .full-image-container
 {
-    margin-left:6rpx;
-    margin-right: 6rpx;
+    margin-bottom: 10rpx;
     position: relative;
 }
 .full-image-container image
@@ -84,4 +88,30 @@
     text-align: center;
     height: 45px;
     line-height: 45px
+}
+
+
+
+
+
+.content{
+    text-align: justify; 
+    overflow: hidden;
+    clear: both;
+    box-sizing: border-box;
+}  
+.item{
+    background-color: #fff;
+    margin: 1%; 
+    margin-bottom: 20rpx;
+    display: inline-block;
+}
+
+.left,.right{
+    display: inline-block;
+    vertical-align: top;
+    width: 50%;
+}
+.right{
+    float: right;
 }

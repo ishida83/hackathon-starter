@@ -15,7 +15,7 @@ Page({
     },
     openDetail:function(events){
         var index=parseInt(events.currentTarget.dataset.index);
-        var obj=this.data.imgList[index];
+        var obj=this.data.imgList.find(item => item.id === index);
         var imgPath=obj.original_img_path;
         var userId=obj.userId;
         wx.navigateTo({
@@ -85,6 +85,7 @@ Page({
 
                     imgListNew = res.data.map(function (item, i) {
                         return {
+                            index: i,
                             userId: res.data[i].userId,
                             id: res.data[i].id,
                             path: serverPath + "/view/images/thumbs/thumb_" + res.data[i].path,

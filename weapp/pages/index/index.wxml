@@ -1,26 +1,53 @@
-<view class="full-image-container"  wx:for="{{imgList}}" wx:if="{{index<3}}">
-    <image src="{{item.path}}" mode="widthFix" lazy-load="true" bindtap="openDetail"  data-index="{{index}}"></image>
-    <view  class="favorite-icon-count">{{item.count}}</view>
-    <view  class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}"></view>
+<view class="full-image-container" wx:for="{{imgList}}" wx:if="{{index<3}}">
+    <image src="{{item.path}}" mode="widthFix" lazy-load="true" bindtap="openDetail" data-index="{{item.id}}"></image>
+    <view class="favorite-icon-count">{{item.count}}</view>
+    <view class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}"></view>
 </view>
 
 
-<view class="free-WaterfallFlow">
+<!-- <view class="free-WaterfallFlow">
     <block>
         <view class="flex-wrap" wx:for="{{imgList}}" wx:key='{{item.path}}' wx:if="{{item.id%2!=''&&index>2}}">
-            <image mode="widthFix" src="{{item.path}}"  bindtap="openDetail" lazy-load="true"  data-index="{{index}}"></image>
-            <view  class="favorite-icon-count">{{item.count}}</view>
-            <view  class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}"></view>
+            <image mode="widthFix" src="{{item.path}}" bindtap="openDetail" lazy-load="true" data-index="{{index}}"></image>
+            <view class="favorite-icon-count">{{item.count}}</view>
+            <view class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}"></view>
         </view>
     </block>
     <block>
-        <view class="flex-wrap" wx:for="{{imgList}}" wx:key='{{item.path}}' wx:if="{{item.id%2==''&&index>2}}" >
-            <image mode="widthFix" src="{{item.path}}" bindtap="openDetail" lazy-load="true"  data-index="{{index}}"></image>
-            <view  class="favorite-icon-count">{{item.count}}</view>
-            <view  class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}"></view>
+        <view class="flex-wrap" wx:for="{{imgList}}" wx:key='{{item.path}}' wx:if="{{item.id%2==''&&index>2}}">
+
         </view>
     </block>
+</view> -->
+<view class="content">
+    <view class="left">
+        <block wx:for="{{imgList}}" wx:key="{{item.path}}">
+            <template is="item" data="{{item}}" wx:if="{{index%2==0 && index>2}}"></template>
+        </block>
+    </view>
+    <view class="right">
+        <block wx:for="{{imgList}}" wx:key="{{item.path}}">
+            <template is="item" data="{{item}}" wx:if="{{index%2==1 && index>2}}"></template>
+        </block>
+    </view>
 </view>
+<!-- <template name="odd">
+    <view> odd </view>
+</template>
+<template name="even">
+    <view> even </view>
+</template> -->
+<template name="item">
+    <view class="flex-wrap">
+        <image mode="widthFix" src="{{item.path}}" bindtap="openDetail" lazy-load="true" data-index="{{item.id}}"></image>
+        <view class="favorite-icon-count">{{item.count}}</view>
+        <view class="favorite-icon  {{item.favorite?'favorite-icon-active':''}}" bindtap="favoriteEvents" data-id="{{item.id}}"></view>
+    </view>
+</template>
 
-<view  wx:if="{{noData}}" class="no-data">没有更多数据了</view>
+<!-- <block wx:for="{{[1, 2, 3, 4, 5]}}">
+    <template is="{{item % 2 == 0 ? 'even' : 'odd'}}" />
+</block> -->
+
+<view wx:if="{{noData}}" class="no-data">没有更多数据了</view>
 <view class="fixed-btn-join" bindtap="joinCompetition"></view>
