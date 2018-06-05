@@ -1,3 +1,4 @@
+/* eslint-disable */
 var app = getApp();
 var pageIndex=1;
 Page({
@@ -82,32 +83,45 @@ Page({
                     var imgListOld=pageIndex>1?that.data.imgList:[];
                     var imgListNew= [];
 
-                    for(var i=0;i<res.data.length;i++){
-                        // var userIdFromLocal=wx.getStorageSync('userId')||"";
-                        // var votes=res.data[i].votes;
-                        // var favorite=false;
-                        // for(var j=0;j<votes.length;j++)
-                        // {
-                        //     if(votes[j].userId.toString()===userIdFromLocal.toString())
-                        //     {
-                        //         favorite=true;
-                        //         break;
-                        //     }
-                        // }
+                    imgListNew = res.data.map(function (item, i) {
+                        return {
+                            userId: res.data[i].userId,
+                            id: res.data[i].id,
+                            path: serverPath + "/view/images/thumbs/thumb_" + res.data[i].path,
+                            favorite: res.data[i].voted,
+                            count: res.data[i].count,
+                            original_img_path: serverPath + "/view/images/" + res.data[i].path
+                        }
+                    });
 
-                        imgListNew.push({
-                            userId:res.data[i].userId,
-                            id:res.data[i].id,
-                            path:serverPath+"/view/images/thumbs/thumb_"+res.data[i].path,
-                            favorite:res.data[i].voted,
-                            count:res.data[i].count,
-                            original_img_path:serverPath+"/view/images/"+res.data[i].path
-                        })
-                    }
-                    for(var i=0;i<imgListNew.length;i++)
-                    {
-                        imgListOld.push(imgListNew[i]);
-                    }
+                    imgListOld = [...imgListOld, ...imgListNew];
+
+                    // for(var i=0;i<res.data.length;i++){
+                    //     // var userIdFromLocal=wx.getStorageSync('userId')||"";
+                    //     // var votes=res.data[i].votes;
+                    //     // var favorite=false;
+                    //     // for(var j=0;j<votes.length;j++)
+                    //     // {
+                    //     //     if(votes[j].userId.toString()===userIdFromLocal.toString())
+                    //     //     {
+                    //     //         favorite=true;
+                    //     //         break;
+                    //     //     }
+                    //     // }
+
+                    //     imgListNew.push({
+                    //         userId:res.data[i].userId,
+                    //         id:res.data[i].id,
+                    //         path:serverPath+"/view/images/thumbs/thumb_"+res.data[i].path,
+                    //         favorite:res.data[i].voted,
+                    //         count:res.data[i].count,
+                    //         original_img_path:serverPath+"/view/images/"+res.data[i].path
+                    //     })
+                    // }
+                    // for(var i=0;i<imgListNew.length;i++)
+                    // {
+                    //     imgListOld.push(imgListNew[i]);
+                    // }
 
                     that.setData({
                         imgList:imgListOld
@@ -133,6 +147,9 @@ Page({
     },
     onLoad:function(){
         this.getImgList();
+        wx.showShareMenu({
+            withShareTicket: true
+        });
     },
     /**
      * 页面上拉触底事件的处理函数

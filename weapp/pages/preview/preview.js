@@ -29,6 +29,9 @@ Page({
             imgPath:imgPath
         })
         this.getUserInfo(userId);
+        wx.showShareMenu({
+            withShareTicket: true
+        });
     },
 
     /**
