@@ -131,6 +131,9 @@ Page( {
     goBack:function(){
         wx.hideLoading();//TODO:需要刷新前页。
         wx.navigateBack();
+        // wx.redirectTo({
+        //     url: '../index/index'
+        // })
     },
     bindPickerChange:function(e){
         console.log('picker发送选择改变，携带值为', e.detail.value);

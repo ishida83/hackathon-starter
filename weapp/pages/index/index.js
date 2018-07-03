@@ -19,7 +19,10 @@ Page({
         var imgPath=obj.original_img_path;
         var userId=obj.userId;
         wx.navigateTo({
-            url: '../preview/preview?path='+imgPath+"&userId="+userId
+            url: '../preview/preview?path='+imgPath+"&userId="+userId,
+            success: () => {
+                wx.setStorageSync('inRedirecting', true);
+            }
         })
     },
     favoriteEvents:function(events){
@@ -147,10 +150,11 @@ Page({
         });
     },
     onLoad:function(){
+        pageIndex=1;
+        this.setData({
+            noData:false
+        })
         this.getImgList();
-        wx.showShareMenu({
-            withShareTicket: true
-        });
     },
     /**
      * 页面上拉触底事件的处理函数
@@ -159,6 +163,18 @@ Page({
         if (this.data.noData ===false){
             this.getImgList();
         }
+    },
+    onShow: function() {
+        wx.removeStorageSync('inRedirecting');
+    },
+    /**
+     * 生命周期函数--监听页面初次渲染完成
+     */
+    onReady: function () {
+        this.getImgList();
+        wx.showShareMenu({
+            withShareTicket: true
+        });
     },
     /**
      * 页面相关事件处理函数--监听用户下拉动作

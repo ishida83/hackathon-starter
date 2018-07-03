@@ -12,6 +12,7 @@
     top: 0;
     padding: 10px;
     color:#333;
+    mix-blend-mode: difference;
     font-size: 26rpx;
     line-height: 24px;
     /*background-color: rgba(255,255,255,0.2);*/

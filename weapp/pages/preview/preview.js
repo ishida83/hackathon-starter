@@ -23,7 +23,7 @@ Page({
      */
     onLoad: function (options) {
         var userId=options.userId;
-        var imgPath=options.path;
+        var imgPath=decodeURIComponent(options.path);
         this.setData({
             userId:userId,
             imgPath:imgPath
@@ -38,7 +38,7 @@ Page({
      * 生命周期函数--监听页面初次渲染完成
      */
     onReady: function () {
-
+        console.log(arguments);
     },
 
     /**
@@ -59,7 +59,8 @@ Page({
      * 生命周期函数--监听页面卸载
      */
     onUnload: function () {
-
+        console.log('unload');
+        wx.removeStorageSync('inRedirecting');
     },
 
     /**
@@ -88,7 +89,14 @@ Page({
         })
     },
     goBack:function(){
-        wx.navigateBack();
+        if(wx.getStorageSync('inRedirecting')===true){
+            wx.removeStorageSync('inRedirecting');
+            wx.navigateBack();
+        } else {
+            wx.redirectTo({
+                url: '../index/index'
+            });
+        }
     },
     getUserInfo:function(userId){
         var that=this;
